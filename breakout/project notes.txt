@@ -1,0 +1,15 @@
+things to do:
+- ball-brick collisions
+- keeping score
+- adding something like "YOU LOSE!"
+
+things to improve:
+- ball-paddle collision code
+- CollideBall function
+
+things that are done:
+- drawing a ball
+- drawing a paddle
+- drawing a background
+- drawing bricks
+- ball-paddle collisions

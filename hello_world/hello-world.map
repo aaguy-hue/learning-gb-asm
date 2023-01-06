@@ -1,0 +1,19 @@
+ROM0 bank #0:
+	EMPTY: $0100 bytes
+	SECTION: $0100-$0192 ($0093 bytes) ["Header"]
+	         $0150 = EntryPoint
+	         $0155 = WaitVBlank
+	         $016b = CopyTiles
+	         $017d = CopyTilemap
+	         $0190 = Done
+	SECTION: $0193-$05f2 ($0460 bytes) ["Tile data"]
+	         $0193 = Tiles
+	         $05f3 = TilesEnd
+	SECTION: $05f3-$0832 ($0240 bytes) ["Tilemap"]
+	         $05f3 = Tilemap
+	         $0833 = TilemapEnd
+	EMPTY: $37cd bytes
+	SLACK: $38cd bytes
+
+SUMMARY:
+	ROM0: 1843 bytes used / 14541 free
