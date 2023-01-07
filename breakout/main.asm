@@ -32,7 +32,13 @@ WaitVBlank:
     ld bc, BgTilesEnd - BgTiles ; bc is how many bytes to copy
     call Memcpy
 
-    ; Copy the tilemap
+    ; Copy the tilemap to WRAM (so we can modify it)
+    ld de, TilemapROM ; start of data
+    ld hl, Tilemap ; where to copy data to
+    ld bc, TilemapROMEnd - TilemapROM ; how much data
+    call Memcpy
+
+    ; Copy the tilemap to VRAM
     ld de, Tilemap ; start of data
     ld hl, _SCRN0 ; where to copy data to
     ld bc, TilemapEnd - Tilemap ; how much data
@@ -169,25 +175,50 @@ BrickCollision:
     ld e, a
     ld a, [wShadowOAM + 5]
     ld c, a
-    call GetTileID
+    call GetTile
 
     ; Check if the tile is 5
     ld a, 5
-    cp a, b
-    jp z, BrickCollisionType
+    cp a, [hl]
+    jp z, BrickLeftDisappear
 
     ; or 6
     inc a
-    cp a, b
+    cp a, [hl]
     jp nz, CollisionEnd
 
-BrickCollisionType:
+BrickRightDisappear:
+    ; make the brick disappear
+    ld [hl], $08
+    dec hl
+    ld [hl], $08
+    jp BrickCollided
+
+BrickLeftDisappear:
+    ; make the brick disappear
+    ld [hl], $08
+    inc hl
+    ld [hl], $08
+
+BrickCollided:
+    ; update the tilemap
+    ld de, Tilemap ; copy the new tilemap
+    ld hl, _SCRN0
+    ld bc, TilemapEnd - Tilemap
+    call Memcpy
+
     ; check if the ball collided on the side or top/bottom
+    ; ld a, [wShadowOAM + 4] ; get y val
+    ; and a, %00000111 ; y_val % 8
+    ; sub a, 2
+    ; jp c, BrickYBounce
+    ; add a, 2 + 2 ; add back the 2 we subtracted + 2 more, logic is on the next next next line
+    ; bit 4, a
+    ; jp nz, BrickXBounce
     ld a, [wShadowOAM + 4] ; get y val
     and a, %00000111 ; y_val % 8
-    sub a, 1
-    jp c, BrickYBounce
-    add a, 1 + 1 ; add back the 2 we subtracted + 2 more, logic is on the next next next line
+    jp z, BrickYBounce
+    add a, 1
     bit 4, a
     jp nz, BrickXBounce
 
@@ -342,11 +373,11 @@ Memcpy:
     jr nz, Memcpy
     ret
 
-; Get the tile id from some xy position of the ball
+; Get the address of the tile in WRAM from some xy position of the ball
 ; @param c: the x position of the ball
 ; @param e: the y position of the ball
-; @returns b: the tile id at the xy position
-GetTileID:
+; @returns hl: the address of the tile
+GetTile:
     ; there is no scroll, so we divide coordinates by tile size (8x8) to get tile coords
     ; use tile coords to check the tilemap
 
@@ -379,8 +410,6 @@ GetTileID:
     ; Then add that to where the tiles are stored
     ld bc, Tilemap
     add hl, bc
-
-    ld b, [hl]
     ret
 
 ; Multiply 2 8-bit numbers (adapted from https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication)
@@ -642,7 +671,7 @@ BgTiles:
     
 BgTilesEnd:
 
-Tilemap:
+TilemapROM:
     db $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
@@ -661,7 +690,7 @@ Tilemap:
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $12, $13, $14, $15, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $16, $17, $18, $19, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-TilemapEnd:
+TilemapROMEnd:
 
 Sprites:
 .paddle:
@@ -685,6 +714,11 @@ Sprites:
     dw `00000000
     dw `00000000
 .ballEnd:
+
+SECTION "Tilemap", wram0
+Tilemap:
+    ds TilemapROMEnd - TilemapROM
+TilemapEnd:
 
 SECTION "Joypad Variables", WRAM0
 wCurKeys: db

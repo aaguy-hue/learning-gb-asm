@@ -1,4 +1,5 @@
 things to do:
+- make blocks disappear when hit
 - keeping score
 - adding something like "YOU LOSE!"
 
@@ -18,3 +19,4 @@ bugs:
 - hitting the ball from the side causes the game to stutter and eventually crash
 - hitting the wall with the paddle causes the game to stutter and eventually crash
 - sometimes, the ball randomly gets stuck in the blocks
+  - this bug will probably not happen once I make blocks disappear, so it's probably not that important
