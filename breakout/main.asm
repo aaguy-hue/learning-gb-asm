@@ -127,23 +127,18 @@ Main: ; main loop
 WallXCollision:
     ld a, [wShadowOAM + 5]
     cp a, 15
-    jp z, WallCollided
+    call z, BounceX
     cp a, 105
-    jp c, WallYCollision
-
-WallCollided:
-    call BounceX
+    call nc, BounceX
     
 WallYCollision:
     ld a, [wShadowOAM + 4]
     cp a, 23
-    jp z, WallCollided2
+    call z, BounceY
     cp a, 146 ; 144 + a little more to make it touch the grass
     ; jp nc, YouLose ; you would lose in this case
-    jp c, PaddleCollision
-    
-WallCollided2:
-    call BounceY
+    call nc, BounceY
+
 
 PaddleCollision:
     ; Check for collisions between the ball and paddle
@@ -188,9 +183,22 @@ BrickCollision:
 
 BrickCollisionType:
     ; check if the ball collided on the side or top/bottom
-    
-    call BounceX
+    ld a, [wShadowOAM + 4] ; get y val
+    and a, %00000111 ; y_val % 8
+    sub a, 1
+    jp c, BrickYBounce
+    add a, 1 + 1 ; add back the 2 we subtracted + 2 more, logic is on the next next next line
+    bit 4, a
+    jp nz, BrickXBounce
+
+BrickYBounce:
+    ; if the y value is less than 2 pixels into the block, it's likely hitting the bottom or top
     call BounceY
+    jp CollisionEnd
+
+BrickXBounce:
+    ; if it's not on the bottom or top, it's on the side
+    call BounceX
 
 CollisionEnd:
 
