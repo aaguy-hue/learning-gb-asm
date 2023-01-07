@@ -1,5 +1,7 @@
 # Notes
 
+these are notes I took from the lessons, everything I did afterwards I was too lazy to take notes on :\
+
 ## Reference
 Instruction reference (asm): https://rgbds.gbdev.io/docs/gbz80.7 or `man gbz80`
 

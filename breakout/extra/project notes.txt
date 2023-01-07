@@ -1,0 +1,29 @@
+things to do:
+- keeping score
+- adding something like "YOU LOSE!"
+- make the ball go at a 30deg angle when hit by the paddle while moving (maybe a little hard)
+
+things to improve:
+- ball-paddle collision code (see bugs)
+- CollideBall function
+
+things that are done:
+- make blocks disappear when hit
+- drawing a ball
+- drawing a paddle
+- drawing a background
+- drawing bricks
+- ball-paddle collisions
+- ball-brick collisions
+
+bugs:
+- hitting the ball from the side causes the game to stutter and eventually crash
+- hitting the wall with the paddle causes the game to stutter and eventually crash
+- sometimes, the ball randomly gets stuck in the blocks
+  - this bug will probably not happen once I make blocks disappear, so it's probably not that important
+
+things to note for future:
+- I directly check the tilemap in vram for collision with background, this is probably bad practice
+  - better practice seems to be to store the tilemap in wram and copy over to vram
+  - I didn't do this since when I did this, it was ridiculously buggy (see wram_collision.mp4)
+  - For some reason, from debugging, it was fine when I updated wram, but when copying the data in wram to vram, some values seemed to somehow retain their original values instead of getting copied

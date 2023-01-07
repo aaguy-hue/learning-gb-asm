@@ -32,10 +32,16 @@ WaitVBlank:
     ld bc, BgTilesEnd - BgTiles ; bc is how many bytes to copy
     call Memcpy
 
+    ; Copy the tilemap to WRAM (so we can modify it)
+    ld de, TilemapROM ; start of data
+    ld hl, wTilemap ; where to copy data to
+    ld bc, TilemapROMEnd - TilemapROM ; how much data
+    call Memcpy
+
     ; Copy the tilemap to VRAM
-    ld de, Tilemap ; start of data
+    ld de, wTilemap ; start of data
     ld hl, _SCRN0 ; where to copy data to
-    ld bc, TilemapEnd - Tilemap ; how much data
+    ld bc, wTilemapEnd - wTilemap ; how much data
     call Memcpy
 
     ; Copy the paddle tile
@@ -195,6 +201,12 @@ BrickLeftDisappear:
     ld [hl], $08
 
 BrickCollided:
+    ; update the tilemap
+    ld de, wTilemap ; copy the new Tilemap
+    ld hl, _SCRN0
+    ld bc, wTilemapEnd - wTilemap
+    call Memcpy
+
     ; check if the ball collided on the side or top/bottom
     ld a, [wShadowOAM + 4] ; get y val
     and a, %00000111 ; y_val % 8
@@ -390,7 +402,7 @@ GetTile:
     add hl, bc
     
     ; Then add that to where the tiles are stored
-    ld bc, _SCRN0
+    ld bc, wTilemap
     add hl, bc
     ret
 
@@ -653,7 +665,7 @@ BgTiles:
     
 BgTilesEnd:
 
-Tilemap:
+TilemapROM:
     db $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
@@ -672,7 +684,7 @@ Tilemap:
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $12, $13, $14, $15, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $16, $17, $18, $19, $03, 0,0,0,0,0,0,0,0,0,0,0,0
     db $04, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-TilemapEnd:
+TilemapROMEnd:
 
 Sprites:
 .paddle:
@@ -696,6 +708,11 @@ Sprites:
     dw `00000000
     dw `00000000
 .ballEnd:
+
+SECTION "Tilemap", wram0
+wTilemap:
+    ds TilemapROMEnd - TilemapROM
+wTilemapEnd:
 
 SECTION "Joypad Variables", WRAM0
 wCurKeys: db
