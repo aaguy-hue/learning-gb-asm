@@ -1,7 +1,11 @@
 things to do:
-- ball-brick collisions
 - keeping score
 - adding something like "YOU LOSE!"
+
+things in progress:
+- ball-brick collisions
+  - if ball hits side of brick, reverse the x
+  - if ball hits bottom or top of brick, reverse the y
 
 things to improve:
 - ball-paddle collision code
@@ -13,3 +17,7 @@ things that are done:
 - drawing a background
 - drawing bricks
 - ball-paddle collisions
+
+bugs:
+- hitting the ball from the side causes the game to stutter and eventually crash
+- hitting the wall with the paddle causes the game to stutter and eventually crash

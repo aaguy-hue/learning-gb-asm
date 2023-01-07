@@ -109,9 +109,8 @@ ClearOam:
     ld [wNewKeys], a
 
     ; Initialize ball speed
-    ld [wBallSpeedX], a
-
     ld a, 1
+    ld [wBallSpeedX], a
     ld [wBallSpeedY], a
 
 Main: ; main loop
@@ -133,7 +132,7 @@ WallXCollision:
     jp c, WallYCollision
 
 WallCollided:
-    call CollideBall
+    call BounceX
     
 WallYCollision:
     ld a, [wShadowOAM + 4]
@@ -144,7 +143,7 @@ WallYCollision:
     jp c, PaddleCollision
     
 WallCollided2:
-    call CollideBall
+    call BounceY
 
 PaddleCollision:
     ; Check for collisions between the ball and paddle
@@ -166,17 +165,33 @@ XCheck:
 
 Collide:
     ; If there's a collision, make the speed the opposite
-    call CollideBall
+    call BounceX
+    call BounceY
 
 BrickCollision:
     ; Check for collisions between the ball and bricks
-    ld hl, wShadowOAM + 4
-    ld d, [hl]
-    ld hl, wShadowOAM + 5
-    ld b, [hl]
-    call IsBrick
+    ld a, [wShadowOAM + 4]
+    ld e, a
+    ld a, [wShadowOAM + 5]
+    ld c, a
+    call GetTileID
+
+    ; Check if the tile is 5
+    ld a, 5
+    cp a, b
+    jp z, BrickCollisionType
+
+    ; or 6
+    inc a
+    cp a, b
     jp nz, CollisionEnd
-    call CollideBall
+
+BrickCollisionType:
+    ; check if the ball collided on the side or top/bottom
+    
+    call BounceX
+    call BounceY
+
 CollisionEnd:
 
     ; Update the ball
@@ -287,23 +302,22 @@ UpdateBall:
     
     ret
 
-; Makes the speed the opposite
-; No params
-CollideBall:
+; Makes the ball x speed the opposite
+BounceX:
     ld a, [wBallSpeedX]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedX], a
-
+    ret
+    
+; Makes the ball y speed the opposite
+BounceY: 
     ld a, [wBallSpeedY]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedY], a
-    ; ld a, [wBallSpeedY]
-    ; ld [wBallSpeedY], -a
-    
     ret
 
 ; Copy bytes from one area to another
@@ -320,34 +334,69 @@ Memcpy:
     jr nz, Memcpy
     ret
 
-; Check if some xy is a brick
-; @param b: the x position of the ball
-; @param d: the y position of the ball
-; @return f: the zero flag will be set if xy is a brick
-IsBrick:
+; Get the tile id from some xy position of the ball
+; @param c: the x position of the ball
+; @param e: the y position of the ball
+; @returns b: the tile id at the xy position
+GetTileID:
     ; there is no scroll, so we divide coordinates by tile size (8x8) to get tile coords
     ; use tile coords to check the tilemap
-    sra b
-    sra b
-    sra b
-    sra d
-    sra d
-    sra d
+
+    ; account for the 8x16 offset
+    ld a, c
+    sub a, 8
+    ld c, a
+
+    ld a, e
+    sub a, 16
+    ld e, a
+
+    ; divide both nums by 8 by right shifting by 3
+    sra c
+    sra c
+    sra c
+    sra e
+    sra e
+    sra e
     
-    ld c, 0
-    ld e, 0
+    ; each line has 32 tiles, so we need to multiply y by 32
+    ld h, e
+    ld e, 32
+    call Mul16
 
-    ld hl, Tilemap
+    ; then use the x as the offset to get to the correct addr
+    ld b, 0
     add hl, bc
-    add hl, de
+    
+    ; Then add that to where the tiles are stored
+    ld bc, Tilemap
+    add hl, bc
 
-    ld a, 5
-    cp [hl]
-    ret z
-
-    inc a
-    cp [hl]
+    ld b, [hl]
     ret
+
+; Multiply 2 8-bit numbers (adapted from https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication)
+; @param h: number 1
+; @param e: number 2
+; @returns hl: result
+Mul16::
+    ld	d, 0
+    sla	h
+    sbc	a, a
+    and	e
+    ld	l, a
+    
+    ld	b, 7
+ .loop:
+    add	hl, hl
+    jr	nc, @+3
+    add	hl, de
+    
+    dec b
+    jr nz, .loop
+    
+    ret
+ 
 
 SECTION "OAM DMA Subroutine", ROM0
 DMARoutine:
