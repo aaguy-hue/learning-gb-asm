@@ -1,0 +1,82 @@
+ROM0 bank #0:
+	SECTION: $0000-$000a ($000b bytes) ["OAM DMA Subroutine"]
+	         $0000 = DMARoutine
+	         $0007 = DMARoutine.wait
+	         $000b = DMARoutineEnd
+	SECTION: $000b-$000b ($0001 byte) ["VBlank Handler"]
+	         $000b = VBlankHandler
+	EMPTY: $0034 bytes
+	SECTION: $0040-$0042 ($0003 bytes) ["VBlank Interrupt"]
+	         $0040 = VBlankInterrupt
+	EMPTY: $00bd bytes
+	SECTION: $0100-$0345 ($0246 bytes) ["Header"]
+	         $0150 = EntryPoint
+	         $0150 = WaitVBlank
+	         $019d = ClearOam
+	         $01e2 = Main
+	         $01f1 = WallXCollision
+	         $01fe = WallYCollision
+	         $020b = PaddleCollision
+	         $021c = XCheck
+	         $022d = Collide
+	         $0233 = BrickCollision
+	         $0249 = BrickRightDisappear
+	         $0251 = BrickLeftDisappear
+	         $0256 = BrickCollided
+	         $0267 = BrickYBounce
+	         $026d = BrickXBounce
+	         $0270 = CollisionEnd
+	         $0273 = FrameEnd
+	         $0279 = Input
+	         $0299 = Input.onenibble
+	         $02a6 = Input.knownret
+	         $02a7 = ProcessInput
+	         $02a7 = ProcessInput.check_left
+	         $02af = ProcessInput.process_left
+	         $02be = ProcessInput.check_right
+	         $02c6 = ProcessInput.process_right
+	         $02d2 = ProcessInput.func_end
+	         $02d3 = UpdateBall
+	         $02e8 = BounceX
+	         $02f2 = BounceY
+	         $02fc = Reset
+	         $030a = Memcpy
+	         $0313 = GetTile
+	         $0335 = Mul16
+	         $033e = Mul16.loop
+	SECTION: $0346-$0745 ($0400 bytes) ["Tiles"]
+	         $0346 = BgTiles
+	         $04e6 = BgTilesEnd
+	         $04e6 = Tilemap
+	         $0726 = TilemapEnd
+	         $0726 = Sprites.paddle
+	         $0726 = Sprites
+	         $0736 = Sprites.paddleEnd
+	         $0736 = Sprites.ball
+	         $0746 = Sprites.ballEnd
+	EMPTY: $38ba bytes
+	SLACK: $39ab bytes
+
+WRAM0 bank #0:
+	SECTION: $c000-$c09f ($00a0 bytes) ["Shadow OAM"]
+	         $c000 = wShadowOAM
+	SECTION: $c0a0-$c0a2 ($0003 bytes) ["Global Variables"]
+	         $c0a0 = wBallSpeedX
+	         $c0a1 = wBallSpeedY
+	         $c0a2 = wGameOver
+	SECTION: $c0a3-$c0a4 ($0002 bytes) ["Joypad Variables"]
+	         $c0a3 = wCurKeys
+	         $c0a4 = wNewKeys
+	EMPTY: $0f5b bytes
+	SLACK: $0f5b bytes
+
+HRAM bank #0:
+	SECTION: $ff80-$ff8a ($000b bytes) ["OAM DMA"]
+	         $ff80 = hOAMDMA
+	EMPTY: $0074 bytes
+	SLACK: $0074 bytes
+
+SUMMARY:
+	ROM0: 1621 bytes used / 14763 free
+	WRAM0: 165 bytes used / 3931 free
+	HRAM: 11 bytes used / 116 free

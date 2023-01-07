@@ -1,6 +1,7 @@
 things to do:
+- indicating when you win
+- make the ball slower
 - keeping score
-- adding something like "YOU LOSE!"
 - make the ball go at a 30deg angle when hit by the paddle while moving (maybe a little hard)
 
 things to improve:
@@ -15,12 +16,15 @@ things that are done:
 - drawing bricks
 - ball-paddle collisions
 - ball-brick collisions
+- indicating when you lose
 
 bugs:
 - hitting the ball from the side causes the game to stutter and eventually crash
 - hitting the wall with the paddle causes the game to stutter and eventually crash
 - sometimes, the ball randomly gets stuck in the blocks
   - this bug will probably not happen once I make blocks disappear, so it's probably not that important
+- bouncing can be weird when hitting corners (a little difficult to replicate)
+  - see weirdbouncing.mp4, 10 seconds in
 
 things to note for future:
 - I directly check the tilemap in vram for collision with background, this is probably bad practice

@@ -63,8 +63,8 @@ ClearOam:
     ld hl, wShadowOAM ; start of oam
     ld a, 128 + 16
     ld [hli], a ; y = 128
-    ld a, 16 + 8
-    ld [hli], a ; x = 16
+    ld a, 40 + 8
+    ld [hli], a ; x = 40
     xor a, a
     ld [hli], a ; tile id = 0
     ld [hli], a ; don't set any attrs
@@ -90,7 +90,6 @@ ClearOam:
     ; During the first blank frame, initialize display registers
     ld a, %11100100
     ld [rBGP], a ; set background palette
-    ld a, %11100100
     ld [rOBP0], a ; set object palette 0
 
     ; Enable the VBlank interrupt by writing to interrupt enable register
@@ -113,9 +112,17 @@ ClearOam:
     ld [wBallSpeedX], a
     ld [wBallSpeedY], a
 
+    ; Initialize game over
+    xor a, a
+    ld [wGameOver], a
+
 Main: ; main loop
     ; Cycle of: VBLANK happens -> run instructions -> wait for VBLANK again, then repeat
     halt ; wait until interrupt (only vblank is enabled)
+
+    ld a, [wGameOver]
+    cp a, 1
+    jr z, Main
 
     ; Check the current keys EACH FRAME
     call Input
@@ -136,8 +143,8 @@ WallYCollision:
     cp a, 23
     call z, BounceY
     cp a, 146 ; 144 + a little more to make it touch the grass
-    ; jp nc, YouLose ; you would lose in this case
-    call nc, BounceY
+    call nc, Reset ; you would lose in this case
+    ; call nc, BounceY
 
 
 PaddleCollision:
@@ -333,13 +340,25 @@ BounceX:
     ret
     
 ; Makes the ball y speed the opposite
-BounceY: 
+BounceY:
     ld a, [wBallSpeedY]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedY], a
     ret
+
+; Makes the screen black
+Reset:
+    ld a, %1111111
+    ld [rBGP], a ; set background palette
+    ld [rOBP0], a ; set object palette 0
+
+    ld a, 1
+    ld [wGameOver], a
+
+    ret
+
 
 ; Copy bytes from one area to another
 ; @param de: Source
@@ -429,15 +448,18 @@ DMARoutine:
     jr nz, .wait
     ret
 DMARoutineEnd:
-    
-    
-SECTION "Shadow OAM", WRAM0, ALIGN[8]
-    wShadowOAM:: ds 40 * 4 ; 40 possible sprites, 4 bytes each
+
+    ; When VBLANK happens, the interrupt will switch execution to what's here
+SECTION "VBlank Interrupt", ROM0[$0040]
+VBlankInterrupt:
+    ; Jump away to another section, since the VBlank interrupt code can only have 8 bytes
+    jp VBlankHandler
 
 
-SECTION "OAM DMA", HRAM
-    hOAMDMA:: ds DMARoutineEnd - DMARoutine ; allocate space to put the dma routine into
-
+SECTION "VBlank Handler", ROM0
+VBlankHandler:
+    ; reti = ei *newline* ret, basically just returning and enabling interrupts
+    reti
 
 SECTION "Tiles", ROM0
 BgTiles:
@@ -701,18 +723,14 @@ SECTION "Joypad Variables", WRAM0
 wCurKeys: db
 wNewKeys: db
 
-SECTION "Ball Variables", WRAM0
+SECTION "Global Variables", WRAM0
 wBallSpeedX: db ; speed x
 wBallSpeedY: db ; speed y
+wGameOver: db ; is the game over, 0 or 1
 
-; When VBLANK happens, the interrupt will switch execution to what's here
-SECTION "VBlank Interrupt", ROM0[$0040]
-VBlankInterrupt:
-    ; Jump away to another section, since the VBlank interrupt code can only have 8 bytes
-    jp VBlankHandler
+SECTION "Shadow OAM", WRAM0, ALIGN[8]
+wShadowOAM:: ds 40 * 4 ; 40 possible sprites, 4 bytes each
 
 
-SECTION "VBlank Handler", ROM0
-VBlankHandler:
-    ; reti = ei *newline* ret, basically just returning and enabling interrupts
-    reti
+SECTION "OAM DMA", HRAM
+hOAMDMA:: ds DMARoutineEnd - DMARoutine ; allocate space to put the dma routine into
