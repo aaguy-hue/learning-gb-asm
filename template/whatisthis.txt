@@ -1,3 +1,3 @@
 this is just a template I made for making game boy games, just look at comments for where to put your code
 
-there's a build.bat file here to build the project into a .gb file
+there's a build.bat file here to build the project into a .gb file (I separated out the rgblink command so I can make sure I don't forget)

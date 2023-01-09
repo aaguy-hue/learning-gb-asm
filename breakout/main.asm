@@ -7,6 +7,10 @@ SECTION "Header", ROM0[$100]
     ds $150 - @, 0 ; make space for header
 
 EntryPoint:
+    ; Turn on sound
+    ld a, %11111111
+    ld [rAUDENA], a
+
     ; Don't turn the LCD off before VBLANK
 WaitVBlank:
     ; keep looping while the scanline is less than 144, greater than 144 means that it's vblank so we can break out of the loop and turn off the LCD
@@ -169,6 +173,7 @@ Collide:
     ; If there's a collision, make the speed the opposite
     call BounceX
     call BounceY
+    call HitSound
 
 BrickCollision:
     ; Check for collisions between the ball and bricks
@@ -357,6 +362,18 @@ Reset:
     ld a, 1
     ld [wGameOver], a
 
+    ; sound channel 1: pulse w/ wavelength sweep
+    ld a, %0111001
+    ld [rNR10], a ; set sweep
+    ld a, %00000110
+    ld [rNR11], a ; set waveform + length timer
+    ld a, %1111111
+    ld [rNR12], a ; set volume
+    ld a, %00100111
+    ld [rNR13], a ; low 8 bits of wave
+    ld a, %11000010
+    ld [rNR14], a ; start the sound + high 3 bits of wave
+
     ret
 
 
@@ -412,6 +429,24 @@ GetTile:
     ld bc, _SCRN0
     add hl, bc
     ret
+    
+
+; Make a sound when something is hit
+HitSound::
+    ; ; sound channel 1: pulse w/ wavelength sweep
+    ; ld a, %0111001
+    ; ld [rNR10], a ; set sweep
+    ; ld a, %00000110
+    ; ld [rNR11], a ; set waveform + length timer
+    ; ld a, %1111111
+    ; ld [rNR12], a ; set volume
+    ; ld a, %00100111
+    ; ld [rNR13], a ; low 8 bits of wave
+    ; ld a, %11000010
+    ; ld [rNR14], a ; start the sound + high 3 bits of wave
+
+    ret
+
 
 ; Multiply 2 8-bit numbers (adapted from https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication)
 ; @param h: number 1

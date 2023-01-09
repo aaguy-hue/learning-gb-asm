@@ -1,8 +1,9 @@
 things to do:
+- bigger paddle?
 - indicating when you win
-- make the ball slower
-- keeping score
-- make the ball go at a 30deg angle when hit by the paddle while moving (maybe a little hard)
+- keeping score (make some tiles for numbers? maybe look into rgbgfx?)
+- make the ball slower (only calculate collisions/movement for the ball every 2 frames or so, then change the speed)
+- make the ball go at a 30deg angle when hit by the paddle while moving (if you do the thing above, just set x speed to 1 and y speed to 2 or something, otherwise set x and y speed to 1)
 
 things to improve:
 - ball-paddle collision code (see bugs)
