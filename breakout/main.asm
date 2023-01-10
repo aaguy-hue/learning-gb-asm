@@ -173,7 +173,7 @@ Collide:
     ; If there's a collision, make the speed the opposite
     call BounceX
     call BounceY
-    call HitSound
+    call Sounds.hit
 
 BrickCollision:
     ; Check for collisions between the ball and bricks
@@ -219,10 +219,12 @@ BrickCollided:
 BrickYBounce:
     ; if the y value is less than 2 pixels into the block, it's likely hitting the bottom or top
     call BounceY
+    call Sounds.hit
     jp CollisionEnd
 
 BrickXBounce:
     ; if it's not on the bottom or top, it's on the side
+    call Sounds.hit
     call BounceX
 
 CollisionEnd:
@@ -362,18 +364,7 @@ Reset:
     ld a, 1
     ld [wGameOver], a
 
-    ; sound channel 1: pulse w/ wavelength sweep
-    ld a, %0111001
-    ld [rNR10], a ; set sweep
-    ld a, %00000110
-    ld [rNR11], a ; set waveform + length timer
-    ld a, %1111111
-    ld [rNR12], a ; set volume
-    ld a, %00100111
-    ld [rNR13], a ; low 8 bits of wave
-    ld a, %11000010
-    ld [rNR14], a ; start the sound + high 3 bits of wave
-
+    call Sounds.lose
     ret
 
 
@@ -430,23 +421,62 @@ GetTile:
     add hl, bc
     ret
     
-
+Sounds::
 ; Make a sound when something is hit
-HitSound::
-    ; ; sound channel 1: pulse w/ wavelength sweep
-    ; ld a, %0111001
-    ; ld [rNR10], a ; set sweep
-    ; ld a, %00000110
-    ; ld [rNR11], a ; set waveform + length timer
-    ; ld a, %1111111
-    ; ld [rNR12], a ; set volume
-    ; ld a, %00100111
-    ; ld [rNR13], a ; low 8 bits of wave
-    ; ld a, %11000010
-    ; ld [rNR14], a ; start the sound + high 3 bits of wave
-
+.hit::
+    ; sound channel 2: pulse
+    ld a, %00011111
+    ld [rNR21], a ; set waveform + length timer
+    ld a, %1111111
+    ld [rNR22], a ; set volume
+    ld a, %00010011
+    ld [rNR23], a ; low 8 bits of wave
+    ld a, %11000001
+    ld [rNR24], a ; start the sound + high 3 bits of wave
     ret
 
+; button presses on the main menu (menu isn't yet implemented, so this is unused)
+.btn_press::
+    ; sound channel 1: pulse + sweep
+    ld a, %0011011
+    ld [rNR10], a ; set sweep
+    ld a, %00011111
+    ld [rNR11], a ; set waveform + length timer
+    ld a, %1111111
+    ld [rNR12], a ; set volume
+    ld a, %11111111
+    ld [rNR13], a ; low 8 bits of wave
+    ld a, %11000111
+    ld [rNR14], a ; start the sound + high 3 bits of wave
+    ret
+
+; Make a beep sound (unused, I just made this since in case I want to use it)
+.beep::
+    ; sound channel 2: pulse
+    ld a, %00011111
+    ld [rNR21], a ; set waveform + length timer
+    ld a, %1111111
+    ld [rNR22], a ; set volume
+    ld a, %00000000
+    ld [rNR23], a ; low 8 bits of wave
+    ld a, %11000100
+    ld [rNR24], a ; start the sound + high 3 bits of wave
+    ret
+
+; Make a lose sound
+.lose::
+    ; sound channel 1: pulse w/ wavelength sweep
+    ld a, %0111001
+    ld [rNR10], a ; set sweep
+    ld a, %00000110
+    ld [rNR11], a ; set waveform + length timer
+    ld a, %1111111
+    ld [rNR12], a ; set volume
+    ld a, %00100111
+    ld [rNR13], a ; low 8 bits of wave
+    ld a, %11000010
+    ld [rNR14], a ; start the sound + high 3 bits of wave
+    ret
 
 ; Multiply 2 8-bit numbers (adapted from https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication)
 ; @param h: number 1
