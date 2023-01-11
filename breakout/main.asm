@@ -138,9 +138,13 @@ Main: ; main loop
 WallXCollision:
     ld a, [wShadowOAM + 5]
     cp a, 15
-    call z, BounceX
+    jp z, WallCollideX
     cp a, 105
-    call nc, BounceX
+    jp c, WallYCollision
+
+WallCollideX:
+    call BounceX
+    jp PaddleCollision
     
 WallYCollision:
     ld a, [wShadowOAM + 4]
@@ -149,7 +153,6 @@ WallYCollision:
     cp a, 146 ; 144 + a little more to make it touch the grass
     call nc, Reset ; you would lose in this case
     ; call nc, BounceY
-
 
 PaddleCollision:
     ; Check for collisions between the ball and paddle
@@ -178,27 +181,47 @@ Collide:
 BrickCollision:
     ; Check for collisions between the ball and bricks
     ld a, [wShadowOAM + 4]
-    ld e, a
+    ld e, a ; e = y
     ld a, [wShadowOAM + 5]
-    ld c, a
-    call GetTile
+    ld c, a ; c = x
 
-    ; Check if the tile is 5
-    ld a, 5
-    cp a, [hl]
+    inc e
+    call IsBrick ; check above
+    jp nz, BrickCollided
+    
+    dec e
+    inc c
+    call IsBrick ; check right
+
+    dec e
+    dec c
+    call IsBrick ; check below
+    jp nz, BrickCollided
+
+    inc e
+    dec c
+    call IsBrick ; check left
+    jp z, CollisionEnd
+
+BrickCollsionY:
+    call BounceY
+    jp BrickCollided
+
+BrickCollisionX:
+    call BounceX
+
+BrickCollided:
+    cp a, 1
     jp z, BrickLeftDisappear
-
-    ; or 6
-    inc a
-    cp a, [hl]
-    jp nz, CollisionEnd
+    jp c, BrickRightDisappear
+    call Sounds.hit
 
 BrickRightDisappear:
     ; make the brick disappear
     ld [hl], $08
     dec hl
     ld [hl], $08
-    jp BrickCollided
+    jp CollisionEnd
 
 BrickLeftDisappear:
     ; make the brick disappear
@@ -206,29 +229,7 @@ BrickLeftDisappear:
     inc hl
     ld [hl], $08
 
-BrickCollided:
-    ; check if the ball collided on the side or top/bottom
-    ld a, [wShadowOAM + 4] ; get y val
-    and a, %00000111 ; y_val % 8
-    sub a, 2
-    jp c, BrickYBounce
-    add a, 2 + 2 ; add back the 2 we subtracted + 2 more, logic is on the next next next line
-    bit 4, a
-    jp nz, BrickXBounce
-
-BrickYBounce:
-    ; if the y value is less than 2 pixels into the block, it's likely hitting the bottom or top
-    call BounceY
-    call Sounds.hit
-    jp CollisionEnd
-
-BrickXBounce:
-    ; if it's not on the bottom or top, it's on the side
-    call Sounds.hit
-    call BounceX
-
 CollisionEnd:
-
     ; Update the ball
     call UpdateBall
 
@@ -339,20 +340,32 @@ UpdateBall:
 
 ; Makes the ball x speed the opposite
 BounceX:
+    push af
+    push bc
+
     ld a, [wBallSpeedX]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedX], a
+
+    pop af
+    pop bc
     ret
     
 ; Makes the ball y speed the opposite
 BounceY:
+    push af
+    push bc
+
     ld a, [wBallSpeedY]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedY], a
+
+    pop af
+    pop bc
     ret
 
 ; Makes the screen black
@@ -420,7 +433,32 @@ GetTile:
     ld bc, _SCRN0
     add hl, bc
     ret
-    
+
+
+; Checks if an xy position is a brick
+; @param c: the x position of the ball
+; @param e: the y position of the ball
+; @returns a: 0 if no, 1 if yes and it's the left side, 2 if yes and right side
+IsBrick:
+    ; Check for collisions between the ball and bricks
+    ld a, [wShadowOAM + 4]
+    ld e, a
+    ld a, [wShadowOAM + 5]
+    ld c, a
+    call GetTile
+
+    ; Check if the tile is 5
+    ld a, 5 + 1
+    sub a, [hl]
+    cp a, 1
+    jp z, .return
+
+    ; or 6
+    ld a, 6 + 2
+    sub a, [hl]
+.return
+    ret
+
 Sounds::
 ; Make a sound when something is hit
 .hit::
