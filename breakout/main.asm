@@ -191,18 +191,18 @@ BrickCollision:
     jp nz, BrickCollisionY
     
     dec e
-    inc c
-    call IsBrick ; check right
-    cp a, 0
-    jp nz, BrickCollisionX
-    
     dec e
-    dec c
     call IsBrick ; check below
     cp a, 0
     jp nz, BrickCollisionY
     
     inc e
+    inc c
+    call IsBrick ; check right
+    cp a, 0
+    jp nz, BrickCollisionX
+    
+    dec c
     dec c
     call IsBrick ; check left
     cp a, 0
@@ -438,20 +438,21 @@ GetTile:
 IsBrick:
     call GetTile
 
-    ; Check if the tile is 5
+    ; Check if the tile is 6 (right)
     ld a, 5 + 1
     sub a, [hl]
-    cp a, 1
-    jp z, .return
-    
-    ; or 6
-    ld a, 6 + 2
-    sub a, [hl]
-    cp a, 1
-    jp z, .return
+    jp z, .right
 
+    ; Check if the tile is 5 (left)
+    cp a, 1
+    ret z
+
+    ; return 0 otherwise
     xor a, a
-.return
+    ret
+
+.right:
+    ld a, 2
     ret
 
 Sounds::

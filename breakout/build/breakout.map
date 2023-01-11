@@ -9,7 +9,7 @@ ROM0 bank #0:
 	SECTION: $0040-$0042 ($0003 bytes) ["VBlank Interrupt"]
 	         $0040 = VBlankInterrupt
 	EMPTY: $00bd bytes
-	SECTION: $0100-$03df ($02e0 bytes) ["Header"]
+	SECTION: $0100-$03db ($02dc bytes) ["Header"]
 	         $0150 = EntryPoint
 	         $0155 = WaitVBlank
 	         $01a2 = ClearOam
@@ -44,26 +44,26 @@ ROM0 bank #0:
 	         $0331 = Memcpy
 	         $033a = GetTile
 	         $035c = IsBrick
-	         $0370 = IsBrick.return
-	         $0371 = Sounds.hit
-	         $0371 = Sounds
-	         $0386 = Sounds.btn_press
-	         $03a0 = Sounds.beep
-	         $03b5 = Sounds.lose
-	         $03cf = Mul16
-	         $03d8 = Mul16.loop
-	SECTION: $03e0-$07df ($0400 bytes) ["Tiles"]
-	         $03e0 = BgTiles
-	         $0580 = BgTilesEnd
-	         $0580 = Tilemap
-	         $07c0 = TilemapEnd
-	         $07c0 = Sprites.paddle
-	         $07c0 = Sprites
-	         $07d0 = Sprites.paddleEnd
-	         $07d0 = Sprites.ball
-	         $07e0 = Sprites.ballEnd
-	EMPTY: $3820 bytes
-	SLACK: $3911 bytes
+	         $036a = IsBrick.right
+	         $036d = Sounds.hit
+	         $036d = Sounds
+	         $0382 = Sounds.btn_press
+	         $039c = Sounds.beep
+	         $03b1 = Sounds.lose
+	         $03cb = Mul16
+	         $03d4 = Mul16.loop
+	SECTION: $03dc-$07db ($0400 bytes) ["Tiles"]
+	         $03dc = BgTiles
+	         $057c = BgTilesEnd
+	         $057c = Tilemap
+	         $07bc = TilemapEnd
+	         $07bc = Sprites.paddle
+	         $07bc = Sprites
+	         $07cc = Sprites.paddleEnd
+	         $07cc = Sprites.ball
+	         $07dc = Sprites.ballEnd
+	EMPTY: $3824 bytes
+	SLACK: $3915 bytes
 
 WRAM0 bank #0:
 	SECTION: $c000-$c09f ($00a0 bytes) ["Shadow OAM"]
@@ -85,6 +85,6 @@ HRAM bank #0:
 	SLACK: $0074 bytes
 
 SUMMARY:
-	ROM0: 1775 bytes used / 14609 free
+	ROM0: 1771 bytes used / 14613 free
 	WRAM0: 165 bytes used / 3931 free
 	HRAM: 11 bytes used / 116 free
