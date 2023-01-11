@@ -9,7 +9,7 @@ ROM0 bank #0:
 	SECTION: $0040-$0042 ($0003 bytes) ["VBlank Interrupt"]
 	         $0040 = VBlankInterrupt
 	EMPTY: $00bd bytes
-	SECTION: $0100-$03db ($02dc bytes) ["Header"]
+	SECTION: $0100-$03df ($02e0 bytes) ["Header"]
 	         $0150 = EntryPoint
 	         $0155 = WaitVBlank
 	         $01a2 = ClearOam
@@ -21,49 +21,49 @@ ROM0 bank #0:
 	         $0227 = XCheck
 	         $0238 = Collide
 	         $0241 = BrickCollision
-	         $0265 = BrickCollsionY
-	         $026b = BrickCollisionX
-	         $026e = BrickCollided
-	         $0279 = BrickRightDisappear
-	         $0281 = BrickLeftDisappear
-	         $0286 = CollisionEnd
-	         $0289 = FrameEnd
-	         $028f = Input
-	         $02af = Input.onenibble
-	         $02bc = Input.knownret
-	         $02bd = ProcessInput
-	         $02bd = ProcessInput.check_left
-	         $02c5 = ProcessInput.process_left
-	         $02d4 = ProcessInput.check_right
-	         $02dc = ProcessInput.process_right
-	         $02e8 = ProcessInput.func_end
-	         $02e9 = UpdateBall
-	         $02fe = BounceX
-	         $030c = BounceY
-	         $031a = Reset
-	         $032b = Memcpy
-	         $0334 = GetTile
-	         $0356 = IsBrick
-	         $036c = IsBrick.return
-	         $036d = Sounds.hit
-	         $036d = Sounds
-	         $0382 = Sounds.btn_press
-	         $039c = Sounds.beep
-	         $03b1 = Sounds.lose
-	         $03cb = Mul16
-	         $03d4 = Mul16.loop
-	SECTION: $03dc-$07db ($0400 bytes) ["Tiles"]
-	         $03dc = BgTiles
-	         $057c = BgTilesEnd
-	         $057c = Tilemap
-	         $07bc = TilemapEnd
-	         $07bc = Sprites.paddle
-	         $07bc = Sprites
-	         $07cc = Sprites.paddleEnd
-	         $07cc = Sprites.ball
-	         $07dc = Sprites.ballEnd
-	EMPTY: $3824 bytes
-	SLACK: $3915 bytes
+	         $0270 = BrickCollisionX
+	         $0277 = BrickCollisionY
+	         $027b = BrickCollided
+	         $0287 = BrickRightDisappear
+	         $028f = BrickLeftDisappear
+	         $0294 = CollisionEnd
+	         $0297 = FrameEnd
+	         $029d = Input
+	         $02bd = Input.onenibble
+	         $02ca = Input.knownret
+	         $02cb = ProcessInput
+	         $02cb = ProcessInput.check_left
+	         $02d3 = ProcessInput.process_left
+	         $02e2 = ProcessInput.check_right
+	         $02ea = ProcessInput.process_right
+	         $02f6 = ProcessInput.func_end
+	         $02f7 = UpdateBall
+	         $030c = BounceX
+	         $0316 = BounceY
+	         $0320 = Reset
+	         $0331 = Memcpy
+	         $033a = GetTile
+	         $035c = IsBrick
+	         $0370 = IsBrick.return
+	         $0371 = Sounds.hit
+	         $0371 = Sounds
+	         $0386 = Sounds.btn_press
+	         $03a0 = Sounds.beep
+	         $03b5 = Sounds.lose
+	         $03cf = Mul16
+	         $03d8 = Mul16.loop
+	SECTION: $03e0-$07df ($0400 bytes) ["Tiles"]
+	         $03e0 = BgTiles
+	         $0580 = BgTilesEnd
+	         $0580 = Tilemap
+	         $07c0 = TilemapEnd
+	         $07c0 = Sprites.paddle
+	         $07c0 = Sprites
+	         $07d0 = Sprites.paddleEnd
+	         $07d0 = Sprites.ball
+	         $07e0 = Sprites.ballEnd
+	EMPTY: $3820 bytes
+	SLACK: $3911 bytes
 
 WRAM0 bank #0:
 	SECTION: $c000-$c09f ($00a0 bytes) ["Shadow OAM"]
@@ -85,6 +85,6 @@ HRAM bank #0:
 	SLACK: $0074 bytes
 
 SUMMARY:
-	ROM0: 1771 bytes used / 14613 free
+	ROM0: 1775 bytes used / 14609 free
 	WRAM0: 165 bytes used / 3931 free
 	HRAM: 11 bytes used / 116 free

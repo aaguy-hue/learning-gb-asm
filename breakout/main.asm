@@ -187,34 +187,42 @@ BrickCollision:
 
     inc e
     call IsBrick ; check above
-    jp nz, BrickCollided
+    cp a, 0
+    jp nz, BrickCollisionY
     
     dec e
     inc c
     call IsBrick ; check right
-
+    cp a, 0
+    jp nz, BrickCollisionX
+    
     dec e
     dec c
     call IsBrick ; check below
-    jp nz, BrickCollided
-
+    cp a, 0
+    jp nz, BrickCollisionY
+    
     inc e
     dec c
     call IsBrick ; check left
+    cp a, 0
     jp z, CollisionEnd
 
-BrickCollsionY:
-    call BounceY
+BrickCollisionX:
+    push af ; save the isbrick return value
+    call BounceX
     jp BrickCollided
 
-BrickCollisionX:
-    call BounceX
+BrickCollisionY:
+    push af ; save the isbrick return value
+    call BounceY
 
 BrickCollided:
+    call Sounds.hit
+    pop af
     cp a, 1
     jp z, BrickLeftDisappear
-    jp c, BrickRightDisappear
-    call Sounds.hit
+    jp BrickRightDisappear
 
 BrickRightDisappear:
     ; make the brick disappear
@@ -340,32 +348,20 @@ UpdateBall:
 
 ; Makes the ball x speed the opposite
 BounceX:
-    push af
-    push bc
-
     ld a, [wBallSpeedX]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedX], a
-
-    pop af
-    pop bc
     ret
     
 ; Makes the ball y speed the opposite
 BounceY:
-    push af
-    push bc
-
     ld a, [wBallSpeedY]
     ld b, a
     xor a, a
     sub a, b
     ld [wBallSpeedY], a
-
-    pop af
-    pop bc
     ret
 
 ; Makes the screen black
@@ -440,11 +436,6 @@ GetTile:
 ; @param e: the y position of the ball
 ; @returns a: 0 if no, 1 if yes and it's the left side, 2 if yes and right side
 IsBrick:
-    ; Check for collisions between the ball and bricks
-    ld a, [wShadowOAM + 4]
-    ld e, a
-    ld a, [wShadowOAM + 5]
-    ld c, a
     call GetTile
 
     ; Check if the tile is 5
@@ -452,10 +443,14 @@ IsBrick:
     sub a, [hl]
     cp a, 1
     jp z, .return
-
+    
     ; or 6
     ld a, 6 + 2
     sub a, [hl]
+    cp a, 1
+    jp z, .return
+
+    xor a, a
 .return
     ret
 
