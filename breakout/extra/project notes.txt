@@ -1,6 +1,7 @@
 things to do:
 - handle winning (when no bricks are left)
 - add score count
+- add music?
 - high score?
 - bigger paddle?
 - indicating when you win
@@ -21,6 +22,7 @@ things that are done:
 - ball-paddle collisions
 - ball-brick collisions
 - indicating when you lose
+- add sound effects
 - title screen
 - ball count
 
