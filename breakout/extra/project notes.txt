@@ -1,4 +1,10 @@
 things to do:
+- add title screen (press START to begin playing)
+  - implement this by having a separate loop that is just showing the title screen, then jump to the game loop when start is pressed
+- handle winning (when no bricks are left)
+- add score count
+- add ball count, subtract a ball each time you lose, exit to title screen when all balls are gone
+- high score?
 - bigger paddle?
 - indicating when you win
 - keeping score (make some tiles for numbers? maybe look into rgbgfx?)
@@ -32,3 +38,5 @@ things to note for future:
   - better practice seems to be to store the tilemap in wram and copy over to vram
   - I didn't do this since when I did this, it was ridiculously buggy (see wram_collision.mp4)
   - For some reason, from debugging, it was fine when I updated wram, but when copying the data in wram to vram, some values seemed to somehow retain their original values instead of getting copied
+
+Credit for the font goes to

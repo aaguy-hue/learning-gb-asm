@@ -1,4 +1,4 @@
-INCLUDE "hardware.inc"
+INCLUDE "include/hardware.inc"
 
 SECTION "Header", ROM0[$100]
 
@@ -35,19 +35,13 @@ WaitVBlank:
     ld hl, _VRAM + $1000 ; hl is the address we'll copy the tiles to, we'll start by copying to $9000 and continuing to $9001, $9002, etc
     ld bc, BgTilesEnd - BgTiles ; bc is how many bytes to copy
     call Memcpy
-
-    ; Copy the tilemap to VRAM
-    ld de, Tilemap ; start of data
-    ld hl, _SCRN0 ; where to copy data to
-    ld bc, TilemapEnd - Tilemap ; how much data
-    call Memcpy
-
+    
     ; Copy the paddle tile
     ld de, Sprites.paddle ; Address of paddle data
     ld hl, _VRAM ; Where to copy paddle tiles to
     ld bc, Sprites.paddleEnd - Sprites.paddle ; how much data to copy
     call Memcpy
-
+    
     ; Copy the ball tile
     ld de, Sprites.ball ; src
     ld hl, _VRAM + $10 ; dest
@@ -65,36 +59,22 @@ ClearOam:
 
     ; Create the paddle
     ld hl, wShadowOAM ; start of oam
-    ld a, 128 + 16
-    ld [hli], a ; y = 128
-    ld a, 40 + 8
-    ld [hli], a ; x = 40
     xor a, a
+    ld [hli], a ; y = 128
+    ld [hli], a ; x = 40
     ld [hli], a ; tile id = 0
     ld [hli], a ; don't set any attrs
 
-
     ; Create the ball
-    ld a, 100 + 16
     ld [hli], a ; y = 100
-    ld a, 16 + 8
     ld [hli], a ; x = 16
-    ld a, 1
+    inc a
     ld [hli], a ; tile id = 1
     xor a, a
     ld [hl], a ; don't set any flags
 
     ; Update OAM
     call hOAMDMA
-
-    ; Turn on LCD and enable background and objects
-    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
-    ld [rLCDC], a
-
-    ; During the first blank frame, initialize display registers
-    ld a, %11100100
-    ld [rBGP], a ; set background palette
-    ld [rOBP0], a ; set object palette 0
 
     ; Enable the VBlank interrupt by writing to interrupt enable register
     ld a, IEF_VBLANK
@@ -111,6 +91,54 @@ ClearOam:
     ld [wCurKeys], a
     ld [wNewKeys], a
 
+    jp Title
+
+    
+TitleInit:
+    halt
+    
+    ; Turn off the LCD (we do this only if we're resetting, otherwise it's already off at the start)
+    xor a, a
+    ld [rLCDC], a
+
+    ; Hide ball & paddle
+    xor a, a
+    ld [wShadowOAM], a
+    ld [wShadowOAM + 1], a
+    ld [wShadowOAM + 4], a
+    ld [wShadowOAM + 5], a
+    call hOAMDMA
+
+Title:
+    ld de, TitleTileMap
+    ld hl, _SCRN0
+    ld bc, TitleTileMapEnd - TitleTileMap
+    call Memcpy
+
+    ; Turn on LCD and enable background and objects
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
+    ld [rLCDC], a
+
+    ; During the first blank frame, initialize display registers
+    ld a, %11100100
+    ld [rBGP], a ; set background palette
+    ld [rOBP0], a ; set object palette 0
+
+TitleLoop:
+    halt
+    call Input
+
+    ld a, [wCurKeys]
+    bit 3, a
+    jp z, TitleLoop
+
+GameInit:
+    halt
+
+    ; Turn off the LCD so we have free VRAM access
+    xor a, a
+    ld [rLCDC], a
+
     ; Initialize ball speed
     ld a, 1
     ld [wBallSpeedX], a
@@ -120,19 +148,80 @@ ClearOam:
     xor a, a
     ld [wGameOver], a
 
-Main: ; main loop
+    ; Copy the tilemap to VRAM
+    ld de, GameTileMap ; start of data
+    ld hl, _SCRN0 ; where to copy data to
+    ld bc, GameTileMapEnd - GameTileMap ; how much data
+    call Memcpy
+
+    ; Put the paddle in the center
+    ld a, 128 + 16
+    ld [wShadowOAM], a
+    ld a, 40 + 8
+    ld [wShadowOAM + 1], a
+
+    ; Put the ball in the center
+    ld a, 100 + 16
+    ld [wShadowOAM + 4], a
+    ld a, 16 + 8
+    ld [wShadowOAM + 5], a
+
+    call hOAMDMA
+
+    ; Turn on the LCD
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
+    ld [rLCDC], a
+
+GameLoop: ; main loop
     ; Cycle of: VBLANK happens -> run instructions -> wait for VBLANK again, then repeat
     halt ; wait until interrupt (only vblank is enabled)
 
     ld a, [wGameOver]
     cp a, 1
-    jr z, Main
+    jr z, GameLoop
 
     ; Check the current keys EACH FRAME
     call Input
 
     ; Process input
-    call ProcessInput
+    ; Check if left button pressed
+.check_left:
+    ld a, [wCurKeys]
+    bit 5, a ; see if the bit for left is 1
+    jp z, .check_right ; if it's not set, check for right
+
+; What to do if left button pressed
+.process_left:
+    ; decrement the x value
+    ld a, [wShadowOAM + 1]
+    dec a
+
+    ; if we're at the end of the playable screen, do nothing, else move left
+    cp a, 15
+    jp z, .paddle_end
+    ld [wShadowOAM + 1], a
+
+    ; exit func
+    jp .paddle_end
+
+; Check if right button pressed
+.check_right:
+    ld a, [wCurKeys]
+    bit 4, a
+    jp z, .paddle_end
+
+; What to do if right button pressed
+.process_right:
+    ; increment the x value
+    ld a, [wShadowOAM + 1]
+    inc a
+
+    ; see if we're at the end of the playable area, if so, do nothing, else move right
+    cp a, 105
+    jp z, .paddle_end
+    ld [wShadowOAM + 1], a
+
+.paddle_end
 
     ; Check for collisions between the ball and walls
 WallXCollision:
@@ -151,7 +240,7 @@ WallYCollision:
     cp a, 23
     call z, BounceY
     cp a, 146 ; 144 + a little more to make it touch the grass
-    call nc, Reset ; you would lose in this case
+    jp nc, Reset ; you would lose in this case
     ; call nc, BounceY
 
 PaddleCollision:
@@ -189,26 +278,44 @@ BrickCollision:
     call IsBrick ; check above
     cp a, 0
     jp nz, BrickCollisionY
+
+    inc c
+    call IsBrick ; check diagonal top right
+    cp a, 0
+    jp nz, BrickCollisionDiagonal
     
     dec e
+    call IsBrick ; check right
+    cp a, 0
+    jp nz, BrickCollisionSide
+
     dec e
+    call IsBrick ; check diagonal bottom right
+    cp a, 0
+    jp nz, BrickCollisionDiagonal
+
+    dec c
     call IsBrick ; check below
     cp a, 0
     jp nz, BrickCollisionY
+
+    dec c
+    call IsBrick ; check diagonal bottom left
+    cp a, 0
+    jp nz, BrickCollisionDiagonal
     
     inc e
-    inc c
-    call IsBrick ; check right
-    cp a, 0
-    jp nz, BrickCollisionX
-    
-    dec c
-    dec c
     call IsBrick ; check left
     cp a, 0
     jp z, CollisionEnd
 
-BrickCollisionX:
+BrickCollisionDiagonal:
+    push af ; save the isbrick return value
+    call BounceX
+    call BounceY
+    jp BrickCollided
+
+BrickCollisionSide:
     push af ; save the isbrick return value
     call BounceX
     jp BrickCollided
@@ -246,7 +353,7 @@ FrameEnd:
     call hOAMDMA
 
     ; Continue the loop
-    jp Main
+    jp GameLoop
 
 
 ; Get input from the user
@@ -286,49 +393,6 @@ Input:
   .knownret
     ret
 
-; Process input
-; No params
-ProcessInput:
-    ; Check if left button pressed
-    .check_left:
-        ld a, [wCurKeys]
-        and a, PADF_LEFT ; do an AND to see if the bit for left is 1
-        jp z, .check_right ; if the result is 0, then the bit must be 0
-
-    ; What to do if left button pressed
-    .process_left:
-        ; decrement the x value
-        ld a, [wShadowOAM + 1]
-        dec a
-
-        ; if we're at the end of the playable screen, do nothing, else move left
-        cp a, 15
-        jp z, Main
-        ld [wShadowOAM + 1], a
-
-        ; exit func
-        jp .func_end
-
-    ; Check if right button pressed
-    .check_right:
-        ld a, [wCurKeys]
-        and a, PADF_RIGHT
-        jp z, .func_end
-
-    ; What to do if right button pressed
-    .process_right:
-        ; increment the x value
-        ld a, [wShadowOAM + 1]
-        inc a
-
-        ; see if we're at the end of the playable area, if so, do nothing, else move right
-        cp a, 105
-        jp z, Main
-        ld [wShadowOAM + 1], a
-    
-    .func_end
-        ret
-
 ; Updates the ball
 ; No params
 UpdateBall:
@@ -364,7 +428,7 @@ BounceY:
     ld [wBallSpeedY], a
     ret
 
-; Makes the screen black
+; Makes the screen black, goes back to title screen
 Reset:
     ld a, %1111111
     ld [rBGP], a ; set background palette
@@ -374,8 +438,48 @@ Reset:
     ld [wGameOver], a
 
     call Sounds.lose
-    ret
 
+    ; I probably should have done a loop but um I was lazy
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+    halt
+
+    jp TitleInit
 
 ; Copy bytes from one area to another
 ; @param de: Source
@@ -390,6 +494,21 @@ Memcpy:
     or a, c
     jr nz, Memcpy
     ret
+
+; ; Copy bytes from one area to another for 1bpp images
+; ; @param de: Source
+; ; @param hl: Destination
+; ; @param bc: Length
+; Memcpy1bpp:
+;     ld a, [de]
+;     ld [hli], a
+;     ld [hli], a ; copy twice for 1bpp
+;     inc de
+;     dec bc
+;     ld a, b
+;     or a, c
+;     jr nz, Memcpy
+;     ret
 
 ; Get the address of the tile in WRAM from some xy position of the ball
 ; @param c: the x position of the ball
@@ -771,29 +890,50 @@ BgTiles:
     dw `11111133
     dw `11111133
     dw `11113333
-    
+    INCBIN "include/hourglass.2bpp"
 BgTilesEnd:
 
-Tilemap:
-    db $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $0A, $0B, $0C, $0D, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $0E, $0F, $10, $11, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $12, $13, $14, $15, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $16, $17, $18, $19, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-    db $04, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $07, $03, $03, $03, $03, $03, $03, 0,0,0,0,0,0,0,0,0,0,0,0
-TilemapEnd:
+TitleTileMap: ; note to self: only the first 20 are visible w/o scrolling, other 12 tiles only show after scrolling
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $3C, $4C, $3F, $3B, $45, $49, $4F, $4E, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $4A, $6B, $5E, $6C, $6C, $1A, $08, $4D, $4E, $3B, $4C, $4E, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08 ; PRESS START PORTION
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+TitleTileMapEnd:
+
+GameTileMap:
+    db $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $0A, $0B, $0C, $0D, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $0E, $0F, $10, $11, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $12, $13, $14, $15, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $16, $17, $18, $19, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+GameTileMapEnd:
 
 Sprites:
 .paddle:
