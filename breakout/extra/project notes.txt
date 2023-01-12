@@ -1,9 +1,6 @@
 things to do:
-- add title screen (press START to begin playing)
-  - implement this by having a separate loop that is just showing the title screen, then jump to the game loop when start is pressed
 - handle winning (when no bricks are left)
 - add score count
-- add ball count, subtract a ball each time you lose, exit to title screen when all balls are gone
 - high score?
 - bigger paddle?
 - indicating when you win
@@ -24,6 +21,9 @@ things that are done:
 - ball-paddle collisions
 - ball-brick collisions
 - indicating when you lose
+- title screen
+- ball count
+
 
 bugs:
 - hitting the ball from the side causes the game to stutter and eventually crash

@@ -87,7 +87,7 @@ ClearOam:
     ; Globally enable interrupts
     ei
 
-    ; Initialize joypad vars
+    ; Initialize variables
     ld [wCurKeys], a
     ld [wNewKeys], a
 
@@ -139,14 +139,14 @@ GameInit:
     xor a, a
     ld [rLCDC], a
 
+    ; Initialize ball count
+    ld a, 3
+    ld [wBallCount], a
+
     ; Initialize ball speed
     ld a, 1
     ld [wBallSpeedX], a
     ld [wBallSpeedY], a
-
-    ; Initialize game over
-    xor a, a
-    ld [wGameOver], a
 
     ; Copy the tilemap to VRAM
     ld de, GameTileMap ; start of data
@@ -154,6 +154,9 @@ GameInit:
     ld bc, GameTileMapEnd - GameTileMap ; how much data
     call Memcpy
 
+    
+GameReset:
+    call UpdateBallCount
     ; Put the paddle in the center
     ld a, 128 + 16
     ld [wShadowOAM], a
@@ -175,10 +178,6 @@ GameInit:
 GameLoop: ; main loop
     ; Cycle of: VBLANK happens -> run instructions -> wait for VBLANK again, then repeat
     halt ; wait until interrupt (only vblank is enabled)
-
-    ld a, [wGameOver]
-    cp a, 1
-    jr z, GameLoop
 
     ; Check the current keys EACH FRAME
     call Input
@@ -428,17 +427,58 @@ BounceY:
     ld [wBallSpeedY], a
     ret
 
-; Makes the screen black, goes back to title screen
+
+; updates the ball count
+UpdateBallCount:
+    ld a, [wBallCount]
+    cp a, 3
+    jp nz, .two
+    ld a, $2D
+    ld [_SCRN0 + (TileMapBallCount - GameTileMap)], a
+    ret
+
+.two
+    ld a, [wBallCount]
+    cp a, 2
+    jp nz, .one
+    ld a, $2C
+    ld [_SCRN0 + (TileMapBallCount - GameTileMap)], a
+    ret
+    
+.one
+    ld a, [wBallCount]
+    cp a, 1
+    jp nz, .zero
+    ld a, $2B
+    ld [_SCRN0 + (TileMapBallCount - GameTileMap)], a
+    ret
+    
+.zero
+    ld a, [wBallCount]
+    cp a, 0
+    ld a, $2A
+    ld [_SCRN0 + (TileMapBallCount - GameTileMap)], a
+    ret
+
+
+; Makes the screen black, goes back to title screen if lose, else reduce ball count
 Reset:
+    
+    call Sounds.lose
+    
+    ld a, [wBallCount]
+    sub a, 1
+    ld [wBallCount], a
+    
+    cp a, 0
+    jp nz, .wait
     ld a, %1111111
     ld [rBGP], a ; set background palette
     ld [rOBP0], a ; set object palette 0
 
-    ld a, 1
-    ld [wGameOver], a
+    call UpdateBallCount
 
-    call Sounds.lose
-
+.wait
     ; I probably should have done a loop but um I was lazy
     halt
     halt
@@ -479,6 +519,12 @@ Reset:
     halt
     halt
 
+    ld a, [wBallCount]
+    cp a, 0
+    jp nz, GameReset
+
+    ld a, 3
+    ld [wBallCount], a
     jp TitleInit
 
 ; Copy bytes from one area to another
@@ -919,9 +965,11 @@ GameTileMap:
     db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
     db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
     db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
-    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
-    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
-    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $08, $08, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $07, $03, $03, $71
+TileMapBallCount: db $2D
+    db $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+    db $04, $08, $05, $06, $05, $06, $05, $06, $05, $06, $05, $06, $08, $07, $03, $03, $08, $08, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
     db $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $07, $03, $03, $03, $03, $03, $03, $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
@@ -965,7 +1013,7 @@ wNewKeys: db
 SECTION "Global Variables", WRAM0
 wBallSpeedX: db ; speed x
 wBallSpeedY: db ; speed y
-wGameOver: db ; is the game over, 0 or 1
+wBallCount: db
 
 SECTION "Shadow OAM", WRAM0, ALIGN[8]
 wShadowOAM:: ds 40 * 4 ; 40 possible sprites, 4 bytes each
