@@ -1,4 +1,8 @@
 things to do:
+- handle winning (when no bricks are left)
+- add score count
+- add music?
+- high score?
 - bigger paddle?
 - indicating when you win
 - keeping score (make some tiles for numbers? maybe look into rgbgfx?)
@@ -18,6 +22,10 @@ things that are done:
 - ball-paddle collisions
 - ball-brick collisions
 - indicating when you lose
+- add sound effects
+- title screen
+- ball count
+
 
 bugs:
 - hitting the ball from the side causes the game to stutter and eventually crash
@@ -32,3 +40,5 @@ things to note for future:
   - better practice seems to be to store the tilemap in wram and copy over to vram
   - I didn't do this since when I did this, it was ridiculously buggy (see wram_collision.mp4)
   - For some reason, from debugging, it was fine when I updated wram, but when copying the data in wram to vram, some values seemed to somehow retain their original values instead of getting copied
+
+Credit for the font goes to
